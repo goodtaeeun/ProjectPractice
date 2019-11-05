@@ -68,7 +68,7 @@ worker (void * arg)
 		}
 	}
 	else {
-		char buf[1024];
+		char buf[5000];
 		char * content;
 		char * file_name = data;
 		FILE * f = fopen(file_name, "r");
