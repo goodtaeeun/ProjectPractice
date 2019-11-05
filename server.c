@@ -68,21 +68,33 @@ worker (void * arg)
 		}
 	}
 	else {
-		char buf[5000];
-		char * content;
+		//int  fsize;
 		char * file_name = data;
 		FILE * f = fopen(file_name, "r");
-		fread(buf, s, s, f);
+		
+		//fseek(f, 0, SEEK_END);
+		//fsize = ftell(f);
+		//rewind(f);
+
+		//char* buffer = (char *)malloc(sizeof(char) * fsize);
+
+		//fread(buffer, 1, fsize, f);
 		//while ( (s = send(conn, buf, 1023, 0)) > 0) {
 		//	fread(buf, s, s, f);
 		//}
-		strcpy(content, buf);
-		len = strlen(content);
-		while(len > 0 && (s = send(conn, content, len, 0)) > 0) {
-			content += s;
-			len -= s;
+		char* buffer = 0x0;
+		char buf[1024];
+		size_t n_read, n_write;
+
+		while (n_read = fread(buf,1,1024,f)){
+			strcpy(buffer, buf);
+			while(n_read > 0 && (s = send(conn, buffer, n_read, 0)) > 0) {
+			buffer += s;
+			n_read -= s;
+			}
 		}
 		fclose(f);
+		free(buffer);
 		printf("new file snet to client\n");
 	}
 	

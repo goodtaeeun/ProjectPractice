@@ -88,8 +88,8 @@ int main (int argc, char const *argv[])
 		char buf[1024];
 		FILE * f = fopen(cmdline, "w");
 
-		while ( (s = recv(sock_fd, buf, 1023, 0)) > 0) {
-			fwrite(buf, s,s,f);
+		while ( (s = recv(sock_fd, buf, 1024, 0)) > 0) {
+			fwrite(buf, 1,s,f);
 		}
 		fclose(f);
 		printf("\n");
