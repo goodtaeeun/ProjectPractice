@@ -83,7 +83,8 @@ worker (void * arg)
 		//}
 		//char* buffer = malloc(sizeof(char)*1024);
 		char buf[1024];
-		char * content;
+		char * content = malloc(sizeof(char)*1024);
+		char * start = content;
 		size_t n_read, n_write;
 
 		while (n_read = fread(content, 1,1024,f)){
@@ -93,10 +94,12 @@ worker (void * arg)
 			content += s;
 			len -= s;
 			}
+			content = start;
 			//free(content);
 			//char* buffer = malloc(sizeof(char)*1024);
 		}
 		fclose(f);
+		free(start);
 		//free(buffer);
 		printf("new file sent to client\n");
 	}
