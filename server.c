@@ -77,25 +77,28 @@ worker (void * arg)
 		//rewind(f);
 
 		//char* buffer = (char *)malloc(sizeof(char) * fsize);
-
 		//fread(buffer, 1, fsize, f);
 		//while ( (s = send(conn, buf, 1023, 0)) > 0) {
 		//	fread(buf, s, s, f);
 		//}
-		char* buffer = 0x0;
+		//char* buffer = malloc(sizeof(char)*1024);
 		char buf[1024];
+		char * content;
 		size_t n_read, n_write;
 
-		while (n_read = fread(buf,1,1024,f)){
-			strcpy(buffer, buf);
-			while(n_read > 0 && (s = send(conn, buffer, n_read, 0)) > 0) {
-			buffer += s;
-			n_read -= s;
+		while (n_read = fread(content, 1,1024,f)){
+			//strcpy(content, buf);
+			int len = strlen(content);
+			while(len > 0 && (s = send(conn, content, len, 0)) > 0) {
+			content += s;
+			len -= s;
 			}
+			//free(content);
+			//char* buffer = malloc(sizeof(char)*1024);
 		}
 		fclose(f);
-		free(buffer);
-		printf("new file snet to client\n");
+		//free(buffer);
+		printf("new file sent to client\n");
 	}
 	
 
