@@ -90,9 +90,14 @@ int main (int argc, char const *argv[])
 
 		while ( (s = recv(sock_fd, buf, 1024, 0)) > 0) {
 			fwrite(buf, 1,s,f);
+			//printf("%d",s);
 		}
 		fclose(f);
-		printf("\n");
+		char * text = "chmod +x ";
+		memset(buf, 0, sizeof buf);
+		strcat(buf, text);
+		strcat(buf, cmdline);
+		system(buf);
 	}
 }
 
