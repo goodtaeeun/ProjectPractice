@@ -1,5 +1,3 @@
-// Partly taken from https://www.geeksforgeeks.org/socket-programming-cc/
-
 #include <unistd.h> 
 #include <stdio.h> 
 #include <sys/socket.h> 
@@ -7,59 +5,27 @@
 #include <netinet/in.h> 
 #include <string.h> 
 #include <pthread.h>
-#include <dirent.h>
-#include <sys/types.h>
-
-
 
 void *
 worker (void * arg)
 {
 	int conn ;
-	
-	char * orig = 0x0;
-	char store[1024];
-	char * data = store;
-//	char * prep = 0x0 ;
+	char buf[1024] ;
+	char * data = 0x0, * orig = 0x0 ;
 	int len = 0 ;
 	int s ;
 
 	conn = *((int *)arg) ; 
 	free(arg) ;
 
-	int cupstat = 0;
-	int max_temp = 0;
-	int const cup_depth = 5;
-
-	char buf[50];
-	char * buffer = buf;
-
-
-	data = strdup("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>Hello,<br>The cup is on the device<br>The temparature of the cup is ");
-
-
+	data = strdup("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>Hello12sdkjfhksjdfh;klsadjfl;kas;lkdfh;kjasdfkjahsdkjfhkjashfkjashdfkjhasdkjfhlkasdhfkahs3</html>\r\n\r\n") ;
+	len = strlen(data) ;
 	
-
-	sprintf(buffer, "%d", temparature);
-	strcat(data,buffer);
-
-	strcat(data, "<br>The amount of water in the cup is ");
-
-	sprintf(buffer, "%d", height);
-	strcat(data,buffer);
-		
-	strcat(data, "cm<html>\r\n\r\n");
-
-	len = strlen(data);
-
-	orig = data;
-
-
-	while ( len > 0 &&  (s = send(conn, data, len, 0)) > 0 ) {
-		data += s;
-		len -= s;
+	orig = data ;
+	while (len > 0 && (s = send(conn, data, len, 0)) > 0) {
+		data += s ;
+		len -= s ;
 	}
-
 	shutdown(conn, SHUT_WR) ;
 	if (orig != 0x0) 
 		free(orig) ;
