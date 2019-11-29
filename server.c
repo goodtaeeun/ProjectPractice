@@ -31,6 +31,7 @@ worker (void * arg)
 
 	data = strdup("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>This is my name. I am Tae Eun Kim");
 	
+<<<<<<< HEAD
 	sprintf(buffer, "%d", a);
 	strcat(data,buffer);
 	strcat(data, strdup("<html>\r\n\r\n"));
@@ -44,6 +45,59 @@ worker (void * arg)
 		data += s;
 		len -= s;
 
+=======
+	if(strcmp(data, "#list") == 0) {
+		DIR * d;
+		d = opendir(".");
+		if (d == 0x0) {
+			perror("fail");
+			exit(EXIT_FAILURE);
+		}
+		
+		struct dirent * e;
+		for (e = readdir(d); e != 0x0; e = readdir(d)) {
+			if(e->d_type == DT_REG) {
+				//printf("%s\n", e->d_name);
+				char * orig;
+				data = malloc(sizeof(char) * (strlen(e->d_name) + 2));
+				strcpy(data, e->d_name);
+				strcat(data, "\n");
+				len = strlen(data);
+				orig = data;
+				//printf("> %s", data);
+				while(len > 0 && (s = send(conn, data, len, 0)) > 0) {
+					data += s;
+					len -= s;
+				}
+				free(orig);
+			}
+		}
+	}
+	else {
+		//printf("\n");
+		
+		char * file_name = data;
+		FILE * f = fopen(file_name, "r");
+
+		char * content = malloc(sizeof(char)*1024);
+		char * start = content;
+		size_t n_read;
+
+		while (n_read = fread(content, 1, 1024, f))
+		{
+			//printf("%lu", n_read);
+			
+			while(n_read > 0 && (s = send(conn, content, n_read, 0)) > 0) {
+			content += s;
+			n_read -= s;
+			}
+			content = start;
+		}
+		fclose(f);
+		free(start);
+		
+		printf("new file sent to client\n");
+>>>>>>> 3578500d183a92d33933eba66c42a386d11432c9
 	}
 
 	//printf(">%s\n", data) ;
