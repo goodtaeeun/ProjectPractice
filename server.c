@@ -24,85 +24,31 @@ worker (void * arg)
 	conn = *((int *)arg) ; 
 	free(arg) ;
 
-	while ( (s = recv(conn, buf, 1023, 0)) > 0 ) {
-		buf[s] = 0x0 ;
-		if (data == 0x0) {
-			data = strdup(buf) ;
-			len = s ;
-		}
-		else {
-			data = realloc(data, len + s + 1) ;
-			strncpy(data + len, buf, s) ;
-			data[len + s] = 0x0 ;
-			len += s ;
-		}
+	int a = 3;
 
-	}
-	printf(">%s\n", data) ;
+	char * shot = "add this";
+	char buffer[10];
+
+	data = strdup("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>This is my name. I am Tae Eun Kim");
 	
-	if(strcmp(data, "#list") == 0) {
-		DIR * d;
-		d = opendir(".");
-		if (d == 0x0) {
-			perror("fail");
-			exit(EXIT_FAILURE);
-		}
-		
-		struct dirent * e;
-		for (e = readdir(d); e != 0x0; e = readdir(d)) {
-			if(e->d_type == DT_REG) {
-				//printf("%s\n", e->d_name);
-				char * orig;
-				data = malloc(sizeof(char) * (strlen(e->d_name) + 2));
-				strcpy(data, e->d_name);
-				strcat(data, "\n");
-				len = strlen(data);
-				orig = data;
-				//printf("> %s", data);
-				while(len > 0 && (s = send(conn, data, len, 0)) > 0) {
-					data += s;
-					len -= s;
-				}
-				free(orig);
-			}
-		}
-	}
-	else {
-		//int  fsize;
-		char * file_name = data;
-		FILE * f = fopen(file_name, "r");
-		
-		//fseek(f, 0, SEEK_END);
-		//fsize = ftell(f);
-		//rewind(f);
+	sprintf(buffer, "%d", a);
+	strcat(data,buffer);
+	strcat(data, strdup("<html>\r\n\r\n"));
 
-		//char* buffer = (char *)malloc(sizeof(char) * fsize);
-		//fread(buffer, 1, fsize, f);
-		//while ( (s = send(conn, buf, 1023, 0)) > 0) {
-		//	fread(buf, s, s, f);
-		//}
-		//char* buffer = malloc(sizeof(char)*1024);
-		char buf[1024];
-		char * content = malloc(sizeof(char)*1024);
-		char * start = content;
-		size_t n_read, n_write;
+	len = strlen(data);
 
-		while (n_read = fread(content, 1,1024,f)){
-			//strcpy(content, buf);
-			int len = strlen(content);
-			while(len > 0 && (s = send(conn, content, len, 0)) > 0) {
-			content += s;
-			len -= s;
-			}
-			content = start;
-			//free(content);
-			//char* buffer = malloc(sizeof(char)*1024);
-		}
-		fclose(f);
-		free(start);
-		//free(buffer);
-		printf("new file sent to client\n");
+	orig = data;
+
+
+	while ( len > 0 &&  (s = send(conn, data, len, 0)) > 0 ) {
+		data += s;
+		len -= s;
+
 	}
+
+	//printf(">%s\n", data) ;
+	
+	
 	
 
 
