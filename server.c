@@ -9,6 +9,80 @@
 #include <pthread.h>
 #include <dirent.h>
 #include <sys/types.h>
+#include <wiringPi.h>
+#include <time.h>
+#include <stdint.h>
+
+
+#define CDS 0 // light pin num
+#define DHTPIN 7 //temp pin num
+
+int check_cup() {
+	pinMode(CDS, INPUT);
+
+	if(digitalRead(CDS) == HIGH) {
+		return 0;
+	}
+	else{
+		return 1;
+	}
+//	return 0;
+}
+
+float
+check_temp ()
+{
+	int d[5] = {0, 0, 0, 0, 0} ;
+	uint8_t i, j = 0;
+	uint8_t counter = 0;
+
+	pinMode(DHTPIN, OUTPUT);
+	digitalWrite(DHTPIN, LOW);
+	delay(18) ;
+
+	digitalWrite(DHTPIN, HIGH);
+	uint8_t lastStae = HIGH;
+
+	delayMicroseconds(20);
+
+	pinMode(DHTPIN, INPUT);
+
+	for(i = 0; i < 85 ; i++) {
+		counter = 0;
+		while(digitalRead(DHTPIN) == lastState) {
+			counter++;
+			delayMicroseconds(1);
+			if (counter == 255)
+				break;
+		}
+		lastState = digitalRead(DHTPIN);
+
+		if (counter == 255) {
+			printf(".");
+			break;
+		}
+		if(i >= 4 && i % 2 == 0) {
+			d[j/8] <<= 1;
+			if (counter > 30)
+				d[j/8] |= 1;
+			j++;
+		}
+	}
+
+	while(1){
+	if (j >= 40 && (d[4] == ((d[0] + d[1] + d[2] + d[3]) & 0xFF))){
+		char buf [50];
+		sprintf(buf, "%d.%d",d[2], d[3]);
+		
+		float f;
+		f = atof(buf);
+
+		return f;
+	}
+
+
+	}
+}
 
 
 
@@ -20,35 +94,69 @@ worker (void * arg)
 	char * orig = 0x0;
 	char store[1024];
 	char * data = store;
-//	char * prep = 0x0 ;
 	int len = 0 ;
 	int s ;
 
 	conn = *((int *)arg) ; 
 	free(arg) ;
 
-	int cupstat = 0;
-	int max_temp = 0;
+	float max_temp = 0;
+	float current_temp = 0;
 	int const cup_depth = 5;
+	int water_height;
+	time_t begin_time;
+	time_t current_time;
+	float time_dif;
 
 	char buf[50];
 	char * buffer = buf;
 
+	data = strdup("HTTP/1.1 200 OK\r\nContent-Type: text/html; carset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>");
 
-	data = strdup("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>Hello,<br>The cup is on the device<br>The temparature of the cup is ");
-
-
+	while(1) //biggest loop
+	{
 	
+	// receive cup check data
+	if(check_cup()){
+	//set begin_time
+	time(&begin_time);
+	data = realloc(data,sizeof(char) * 2048);//to prevent memory error
+	strcat(data, "Your cup is on the device");	
+	while(check_cup()) //cup check loop
+	{
+		//check current_temp
+		//receive water_height
+		 current_temp = check_temp();
 
-	sprintf(buffer, "%d", temparature);
-	strcat(data,buffer);
+		if(max_temp < current_temp)
+		{
+			max_temp = current_temp;
+			strcat(data, "<br>Checking your cup temparature");
+		}
+		else
+		{
+			sprintf(buf,"<br>Your cup is %f degrees",current_temp);
+			strcat(data,buf);
+			sprintf(buf, "<br>Your cup has dropped %f degrees", max_temp - current_temp);
+			strcat(data,buf);
+		}
+		time(&current_time);
+		time_dif = difftime(begin_time,current_time);//check time differnece
 
-	strcat(data, "<br>The amount of water in the cup is ");
-
-	sprintf(buffer, "%d", height);
-	strcat(data,buffer);
+		sprintf(buf,"<br>Your cup has been placed over %d minuite %d seconds ",int(time_dif/60), int(time_dif%60));
+		strcat(data,buf);
+		//sprintf(buf,"<br>Your cup has %dcm of water", cup_depth - water_depth);
+		//strcat(data,buf)
+	}
+	
+	}
+	else{
+		data = realloc(data,sizeof(char)*2048);
+		strcat(data,"<br>There is no cup");
 		
-	strcat(data, "cm<html>\r\n\r\n");
+	}
+	
+	strcat(data,"<html>\r\n\r\n");
 
 	len = strlen(data);
 
@@ -60,11 +168,13 @@ worker (void * arg)
 		len -= s;
 	}
 
+	}
 	shutdown(conn, SHUT_WR) ;
 	if (orig != 0x0) 
 		free(orig) ;
 
 	return 0x0 ;
+}
 }
 
 int 
