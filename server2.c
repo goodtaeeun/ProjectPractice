@@ -14,21 +14,20 @@
 #include <stdint.h>
 
 
-
+#define CDS 4 // light pin num
 #define DHTPIN 29 //temp pin num
 
 int check_cup() {
 	//wiringPiSetup();
-	int  CDS = 7;
-	pinMode(CDS, OUTPUT);
-	delay(10);
-	pinMode(CDS,INPUT);
-	if(digitalRead(CDS)==LOW){
+	pinMode(CDS, INPUT);
+
+	if(digitalRead(CDS) == HIGH) {
 		return 0;
 	}
-	else if(digitalRead(CDS) == HIGH)
+	else{
 		return 1;
-
+	}
+//	return 0;
 }
 
 float
@@ -87,7 +86,7 @@ check_temp ()
 	}
 }
 
-float depth(){
+int depth(){
 
 	int trig = 23;
 	int echo = 24;
@@ -112,7 +111,7 @@ float depth(){
 		distance = (end-start)/29./2.;
 		
 
-		return distance;
+		return (int)distance;
 
 	
 }
@@ -134,11 +133,10 @@ worker (void * arg)
 
 	float max_temp = 0;
 	float current_temp = 0;
-	float const cup_depth = 9.0;
-	float water_height;
-//	time_t begin_time;
-//	time_t current_time;
-	int cup_stat;
+	int const cup_depth = 11;
+	int water_height;
+	time_t begin_time;
+	time_t current_time;
 	float time_dif;
 
 	char buf[50];
@@ -153,39 +151,13 @@ worker (void * arg)
 	
 	// receive cup check data
 	wiringPiSetup();
-	
-
-	cup_stat = check_cup();
-
-	if(cup_stat==0){
-
-	depth();
-	check_temp();
-
-	data = store;
-	data = strdup("HTTP/1.1 200 OK\r\nContent-Type : text/html;charset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>");
-
-	data = realloc(data,sizeof(char)*1024);
-	strcat(data, "<br>There is no cup<html>\r\n\r\n");
-
-	len = strlen(data);
-	while(len > 0 && (s = send(conn, data, len, 0)) > 0) {
-		data += s;
-		len -= s;
-	}
-	shutdown(conn,SHUT_WR);
-
-	}
-	
-	
-	else if (cup_stat==1){
+	water_height = depth();
+	if(water_height > 3){
 	//set begin_time
-//	time(&begin_time);
-	
-
-	//while(cup_stat) //cup check loop
-	//{
-
+	time(&begin_time);
+		
+	while(check_cup()) //cup check loop
+	{
 
 		data = store;
 		data = strdup("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>");
@@ -206,42 +178,25 @@ worker (void * arg)
 		{
 			sprintf(buf,"<br>Your cup is %f degrees",current_temp);
 			strcat(data,buf);
-		//	sprintf(buf, "<br>Your cup has dropped %f degrees", max_temp - current_temp);
-		//	strcat(data,buf);
+			sprintf(buf, "<br>Your cup has dropped %f degrees", max_temp - current_temp);
+			strcat(data,buf);
 		}
-		//time(&current_time);
-		//time_dif = difftime(begin_time,current_time);//check time differnece
+		time(&current_time);
+		time_dif = difftime(begin_time,current_time);//check time differnece
 
 		sprintf(buf,"<br>Your cup has been placed over %d minuite %d seconds ",(int)time_dif/60, (int)time_dif%60);
 		
 		strcat(data,buf);
-		//strcat(data, ctime(&begin_time));
-		water_height = depth();
-		
-		float sub = cup_depth - water_height;
-		int percent = 0;
-		if(sub/6.0>0.9)
-			percent = 90;
-		else if(sub/6.0>0.8)
-			percent = 80;
-		else if(sub/6.0>0.7)
-			percent = 70;
-		else if(sub/6.0>0.6)
-			percent = 60;
-		else if(sub/6.0>0.5)
-			percent = 50;
-		else if(sub/6.0>0.4)
-			percent = 40;
-		else if(sub/6.0>0.3)
-			percent = 30;
-		else if(sub/6.0>0.2)
-			percent = 20;
-		else if(sub/6.0>0.1)
-			percent = 10;
-		else percent = 0;
+		strcat(data, ctime(&begin_time));
 
-		sprintf(buf,"<br>Your cup has %d%% of water", percent);
-		strcat(data,buf);
+		water_height = depth();
+		if(water_height > 3){
+			sprintf(buf,"<br>Your cup has %dcm of water", cup_depth - water_height);
+			strcat(data,buf);
+		}
+		else{
+			sprintf(buf, "<br>There is no cup");
+		}
 		strcat(data,"<html>\r\n\r\n");
 		len = strlen(data);
 		while(len > 0 && (s = send(conn, data, len, 0)) > 0) {
@@ -249,26 +204,39 @@ worker (void * arg)
 			len -= s;
 			}
 	//	free(data);
-		shutdown(conn, SHUT_WR);
-//		continue;	
-
-	}
-	
-	
-	
+//		shutdown(conn, SHUT_WR);
 		
-	//	continue;
-	
 
-	
-
-//	orig = data;
-
-//	continue;
 	}
-//	shutdown(conn, SHUT_WR) ;
-//	if (orig != 0x0) 
-//		free(orig) ;
+	
+	}
+	else{
+		data = store;
+		data = strdup("HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=UTF-8\r\nContent-Lenght:19\r\n\r\n<html>");
+		
+		data = realloc(data,sizeof(char)*100);
+		strcat(data,"<br>There is no cup<html>\r\n\r\n");
+
+		len = strlen(data);
+		while(len > 0 && (s = send(conn, data, len, 0)) > 0) {
+			data += s;
+			len -= s;
+		}
+	//	free(data);
+
+//		shutdown(conn, SHUT_WR);
+		
+	}
+
+	
+
+	orig = data;
+
+
+	}
+	shutdown(conn, SHUT_WR) ;
+	if (orig != 0x0) 
+		free(orig) ;
 
 	return 0x0 ;
 }
